@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 import random
 import flask
 import json
@@ -48,7 +48,6 @@ def assign_reviews_random(submissions, reviewers, max_n_review):
 
 
     return flask.jsonify(submissions=submission_reviewers_map, tasks=reviewers_task_map)
-
 
 def assign_reviews_preference(submissions, reviewers, max_n_review):
     submission_reviewers_map = {}
@@ -135,27 +134,39 @@ def assign_reviews_preference(submissions, reviewers, max_n_review):
 
     return flask.jsonify(reviews=submission_reviewers_map, tasks=reviewers_task_map)
 
-@app.route('/')
+def assign_reviews_dist_reputation(submissions, reviewers, max_n_review):
+    
+
+
+@app.route('/', methods=['GET', 'POST'])
 def hello_world():
+    if request.method == 'GET':
+        submissions = [{'submission_id':'S00', 'conflicts':['R01']},
+                       {'submission_id':'S01', 'conflicts':['R02']},
+                       {'submission_id':'S02', 'conflicts':['R04']},
+                       {'submission_id':'S03', 'conflicts':['R06']},
+                       {'submission_id':'S04', 'conflicts':['R08']}]
 
-    submissions = [{'submission_id':'S00', 'conflicts':['R01']},
-                   {'submission_id':'S01', 'conflicts':['R02']},
-                   {'submission_id':'S02', 'conflicts':['R04']},
-                   {'submission_id':'S03', 'conflicts':['R06']},
-                   {'submission_id':'S04', 'conflicts':['R08']}]
+        reviewers = [{'reviewer_id':'R00', 'name':'Donald Trump', 'reputation':'0.5', 'preferences':['S00', 'S01']},
+                     {'reviewer_id':'R01', 'name':'Hilary Clinton', 'reputation':'0.75', 'preferences':['S01', 'S02']},
+                     {'reviewer_id':'R02', 'name':'Bart Simpson', 'reputation':'0.5', 'preferences':['S02', 'S03']},
+                     {'reviewer_id':'R03', 'name':'Mickey Mouse', 'reputation':'0.4', 'preferences':['S01']},
+                     {'reviewer_id':'R04', 'name':'Minie Mouse', 'reputation':'0.8', 'preferences':['S02']},
+                     {'reviewer_id':'R05', 'name':'Oliver Quenn', 'reputation':'0.3', 'preferences':['S02']},
+                     {'reviewer_id':'R06', 'name':'Clark Kent', 'reputation':'0.5', 'preferences':['S03']},
+                     {'reviewer_id':'R07', 'name':'Bruce Wayne', 'reputation':'0.7', 'preferences':['S03']},
+                     {'reviewer_id':'R08', 'name':'Louise Lane', 'reputation':'0.5', 'preferences':['S04']},
+                     {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':'0.9', 'preferences':['S04']}]
 
-    reviewers = [{'reviewer_id':'R00', 'name':'Donald Trump', 'reputation':'0.5', 'preferences':['S00', 'S01']},
-                 {'reviewer_id':'R01', 'name':'Hilary Clinton', 'reputation':'0.75', 'preferences':['S01', 'S02']},
-                 {'reviewer_id':'R02', 'name':'Bart Simpson', 'reputation':'0.5', 'preferences':['S02', 'S03']},
-                 {'reviewer_id':'R03', 'name':'Mickey Mouse', 'reputation':'0.4', 'preferences':['S01']},
-                 {'reviewer_id':'R04', 'name':'Minie Mouse', 'reputation':'0.8', 'preferences':['S02']},
-                 {'reviewer_id':'R05', 'name':'Oliver Quenn', 'reputation':'0.3', 'preferences':['S02']},
-                 {'reviewer_id':'R06', 'name':'Clark Kent', 'reputation':'0.5', 'preferences':['S03']},
-                 {'reviewer_id':'R07', 'name':'Bruce Wayne', 'reputation':'0.7', 'preferences':['S03']},
-                 {'reviewer_id':'R08', 'name':'Louise Lane', 'reputation':'0.5', 'preferences':['S04']},
-                 {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':'0.9', 'preferences':['S04']}]
+        n_max_reviewer = 4
+    else:
+        data = request.json
+        submissions = data['submissions']
+        reviewers = data['reviewers']
+        n_max_reviewer = data['n_max_reviewer']
 
-    assignment = assign_reviews_preference(submissions, reviewers, 6)
+
+    assignment = assign_reviews_preference(submissions, reviewers, n_max_reviewer)
     #assignment = assign_reviews_random(submissions, reviewers, 6)
 
     return assignment
