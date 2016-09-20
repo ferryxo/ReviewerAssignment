@@ -5,46 +5,6 @@ import json
 
 app = Flask(__name__)
 
-# base class that will make all derivatives JSON serializable:
-class JSONSerializable(list): # need to derive from a serializable class.
-
-  def __init__(self, value = None):
-    self = [ value ]
-
-  def setJSONSerializableValue(self, value):
-    self = [ value ]
-
-  def getJSONSerializableValue(self):
-    return self[1] if len(self) else None
-
-
-
-class Submission(JSONSerializable):
-    def __init__(self, submission_id, team_id):
-        self.submission_id = submission_id
-        self.team_id = team_id
-
-    def __hash__(self):
-        return hash((self.submission_id, self.team_id))
-
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-            sort_keys=True, indent=4)
-
-class Reviwer(JSONSerializable):
-    def __init__(self, user_id, username, reputation, preference):
-        self.user_id = user_id
-        self.username = username
-        self.reputation = reputation
-        self.preference = preference
-
-    def __hash__(self):
-        return hash((self.user_id, self.username, self.reputation, self.preference))
-
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-            sort_keys=True, indent=4)
-
 def assign_review_random(submissions, reviewers, max_n_review):
     submission_reviewers_map = {}
     reviewers_task_map = {}
@@ -53,19 +13,33 @@ def assign_review_random(submissions, reviewers, max_n_review):
     if max_n_review < n_reviewer:
         random.shuffle(reviewers)
 
-        for i in range(0, len(submissions)):
-            review_team = []
-            for j in range(i, i+max_n_review):
-                reviewer_index = j if j + max_n_review < n_reviewer else j % n_reviewer
+        reviewer_index = -1
+        for i in range(0, max_n_review):
+            for j in range(0, len(submissions)):
 
-                review_team.append(reviewers[reviewer_index])
-                if reviewers[reviewer_index]['reviewer_id'] in reviewers_task_map.keys():
-                    reviewers_task_map[reviewers[reviewer_index]['reviewer_id']].append(submissions[i])
+                while True:
+                    reviewer_index = (reviewer_index + 1) % n_reviewer
+                    if reviewers[reviewer_index]['reviewer_id'] in submissions[j]['conflicts']:
+                        print 'skip conflict'
+                    elif not submissions[j]['submission_id'] in submission_reviewers_map.keys():
+                        break
+                    elif reviewers[reviewer_index] in submission_reviewers_map[submissions[j]['submission_id']]:
+                        print 'skip redundant'
+                    else:
+                        break
+
+
+                if submissions[j]['submission_id'] in submission_reviewers_map.keys():
+                    submission_reviewers_map[submissions[j]['submission_id']].append(reviewers[reviewer_index])
                 else:
-                    this_reviewer_task = [submissions[i]]
-                    reviewers_task_map[reviewers[reviewer_index]['reviewer_id']] = this_reviewer_task
+                    submission_reviewers_map[submissions[j]['submission_id']] = [reviewers[reviewer_index]]
 
-            submission_reviewers_map[submissions[i]['submission_id']] = review_team
+                if reviewers[reviewer_index]['reviewer_id'] in reviewers_task_map.keys():
+                    reviewers_task_map[reviewers[reviewer_index]['reviewer_id']].append(submissions[j])
+                else:
+                     reviewers_task_map[reviewers[reviewer_index]['reviewer_id']] = [submissions[j]]
+
+
     else:
         raise ValueError('number of reviews per submission must be smaller than number of reviewers')
 
@@ -75,11 +49,11 @@ def assign_review_random(submissions, reviewers, max_n_review):
 @app.route('/')
 def hello_world():
 
-    submissions = [{'submission_id':'S00', 'team_id':'T00'},
-                   {'submission_id':'S01', 'team_id':'T01'},
-                   {'submission_id':'S02', 'team_id':'T02'},
-                   {'submission_id':'S03', 'team_id':'T03'},
-                   {'submission_id':'S04', 'team_id':'T04'}]
+    submissions = [{'submission_id':'S00', 'conflicts':['R00', 'R01']},
+                   {'submission_id':'S01', 'conflicts':['R02', 'R03']},
+                   {'submission_id':'S02', 'conflicts':['R04', 'R05']},
+                   {'submission_id':'S03', 'conflicts':['R06', 'R07']},
+                   {'submission_id':'S04', 'conflicts':['R08', 'R09']}]
 
     reviewers = [{'reviewer_id':'R00', 'name':'Donald Trump', 'reputation':'0.5', 'preference':['S00']},
                  {'reviewer_id':'R01', 'name':'Hilary Clinton', 'reputation':'0.75', 'preference':['S00']},
