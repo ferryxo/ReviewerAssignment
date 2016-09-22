@@ -1,14 +1,17 @@
 from flask import Flask, request
 import random
 import flask
-import json
+import numpy
 
 app = Flask(__name__)
 
 
+def find_subsets(reviewers, length, sum):
 
 
-def assign_reviews_random(submissions, reviewers, max_n_review):
+
+
+def assign_reviews_random(submissions, reviewers, n_max_reviewer):
     submission_reviewers_map = {}
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
@@ -49,7 +52,7 @@ def assign_reviews_random(submissions, reviewers, max_n_review):
 
     return flask.jsonify(submissions=submission_reviewers_map, tasks=reviewers_task_map)
 
-def assign_reviews_preference(submissions, reviewers, max_n_review):
+def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
     submission_reviewers_map = {}
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
@@ -134,8 +137,22 @@ def assign_reviews_preference(submissions, reviewers, max_n_review):
 
     return flask.jsonify(reviews=submission_reviewers_map, tasks=reviewers_task_map)
 
-def assign_reviews_dist_reputation(submissions, reviewers, max_n_review):
-    
+def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
+
+    #find the median of reputations
+    reputations = [d['reputation'] for d in reviewers]
+    data = numpy.array(reputations)
+    median = numpy.average(data)
+    sum = median * n_max_reviewer
+
+    #find subsets of reviewers with the length of n_max_reviewer
+    reviewer_combinations = find_subsets(reviewers, n_max_reviewer, sum)
+
+
+
+
+
+
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -147,16 +164,16 @@ def hello_world():
                        {'submission_id':'S03', 'conflicts':['R06']},
                        {'submission_id':'S04', 'conflicts':['R08']}]
 
-        reviewers = [{'reviewer_id':'R00', 'name':'Donald Trump', 'reputation':'0.5', 'preferences':['S00', 'S01']},
-                     {'reviewer_id':'R01', 'name':'Hilary Clinton', 'reputation':'0.75', 'preferences':['S01', 'S02']},
-                     {'reviewer_id':'R02', 'name':'Bart Simpson', 'reputation':'0.5', 'preferences':['S02', 'S03']},
-                     {'reviewer_id':'R03', 'name':'Mickey Mouse', 'reputation':'0.4', 'preferences':['S01']},
-                     {'reviewer_id':'R04', 'name':'Minie Mouse', 'reputation':'0.8', 'preferences':['S02']},
-                     {'reviewer_id':'R05', 'name':'Oliver Quenn', 'reputation':'0.3', 'preferences':['S02']},
-                     {'reviewer_id':'R06', 'name':'Clark Kent', 'reputation':'0.5', 'preferences':['S03']},
-                     {'reviewer_id':'R07', 'name':'Bruce Wayne', 'reputation':'0.7', 'preferences':['S03']},
-                     {'reviewer_id':'R08', 'name':'Louise Lane', 'reputation':'0.5', 'preferences':['S04']},
-                     {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':'0.9', 'preferences':['S04']}]
+        reviewers = [{'reviewer_id':'R00', 'name':'Donald Trump', 'reputation':0.5, 'preferences':['S00', 'S01']},
+                     {'reviewer_id':'R01', 'name':'Hilary Clinton', 'reputation':0.75, 'preferences':['S01', 'S02']},
+                     {'reviewer_id':'R02', 'name':'Bart Simpson', 'reputation':0.5, 'preferences':['S02', 'S03']},
+                     {'reviewer_id':'R03', 'name':'Mickey Mouse', 'reputation':0.4, 'preferences':['S01']},
+                     {'reviewer_id':'R04', 'name':'Minie Mouse', 'reputation':0.8, 'preferences':['S02']},
+                     {'reviewer_id':'R05', 'name':'Oliver Quenn', 'reputation':0.3, 'preferences':['S02']},
+                     {'reviewer_id':'R06', 'name':'Clark Kent', 'reputation':0.5, 'preferences':['S03']},
+                     {'reviewer_id':'R07', 'name':'Bruce Wayne', 'reputation':0.7, 'preferences':['S03']},
+                     {'reviewer_id':'R08', 'name':'Louise Lane', 'reputation':0.5, 'preferences':['S04']},
+                     {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':0.9, 'preferences':['S04']}]
 
         n_max_reviewer = 4
     else:
@@ -166,7 +183,8 @@ def hello_world():
         n_max_reviewer = data['n_max_reviewer']
 
 
-    assignment = assign_reviews_preference(submissions, reviewers, n_max_reviewer)
+    assignment = assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer)
+    #assign_reviews_preference(submissions, reviewers, n_max_reviewer)
     #assignment = assign_reviews_random(submissions, reviewers, 6)
 
     return assignment
