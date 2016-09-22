@@ -6,8 +6,17 @@ import numpy
 app = Flask(__name__)
 
 
-def find_subsets(reviewers, length, sum):
+#def find_subsets(reviewers, length, sum):
 
+def subset(list_subsets, sublist, sublist_len, sum):
+    if sublist_len == len(sublist):
+        if not sublist in list_subsets and sum([reviewer['reputation'] for reviewer in sublist]) == sum:
+            list_subsets.append(sublist)
+        return list_subsets
+    for i in sublist:
+        aux = sublist[:]
+        aux.remove(i)
+        subset(list_subsets, aux, sublist_len, sum)
 
 
 
@@ -16,11 +25,11 @@ def assign_reviews_random(submissions, reviewers, n_max_reviewer):
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
 
-    if max_n_review < n_reviewer:
+    if n_max_reviewer < n_reviewer:
         random.shuffle(reviewers)
 
         reviewer_index = -1
-        for i in range(0, max_n_review):
+        for i in range(0, n_max_reviewer):
             for j in range(0, len(submissions)):
 
                 while True:
@@ -57,7 +66,7 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
 
-    if max_n_review < n_reviewer:
+    if n_max_reviewer < n_reviewer:
         random.shuffle(reviewers)
 
 
@@ -67,7 +76,7 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
             reviewer_index = -1
             reviewer_team = []
 
-            while len(reviewer_team) < max_n_review and reviewer_index < n_reviewer - 1:
+            while len(reviewer_team) < n_max_reviewer and reviewer_index < n_reviewer - 1:
                 reviewer_index = (reviewer_index + 1)
 
                 reviewer_team = submission_reviewers_map.get(submissions[j]['submission_id'])
@@ -127,8 +136,6 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
                 this_reviewer_tasks.append(submissions[j])
                 reviewers_task_map[reviewers[reviewer_index]['reviewer_id']] = this_reviewer_tasks
 
-
-
                 n_avg_task_reviewer = n_avg_task_reviewer + 1/float(len(reviewers))
 
     else:
@@ -146,8 +153,10 @@ def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
     sum = median * n_max_reviewer
 
     #find subsets of reviewers with the length of n_max_reviewer
-    reviewer_combinations = find_subsets(reviewers, n_max_reviewer, sum)
+    list_subsets = []
+    reviewer_combinations = subset(list_subsets, reviewers, n_max_reviewer, sum)
 
+    #now find combinations that are not in conflict with the submission
 
 
 
