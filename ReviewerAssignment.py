@@ -5,22 +5,30 @@ import numpy
 
 app = Flask(__name__)
 
+list_subsets = []
 
-def find_subsets(reviewers, length, sum):
-
-
-
+def reviewer_subset_with_sum(sublist, needed_sublist_len, expected_sum):
+    if needed_sublist_len == len(sublist):
+        if not sublist in list_subsets:
+            if abs(sum([r['reputation'] for r in sublist])-expected_sum)<0.5:
+                list_subsets.append(sublist)
+                return list_subsets
+    if len(sublist) > needed_sublist_len:
+        for i in sublist:
+            aux = sublist[:]
+            aux.remove(i)
+            reviewer_subset_with_sum(aux, needed_sublist_len, expected_sum)
 
 def assign_reviews_random(submissions, reviewers, n_max_reviewer):
     submission_reviewers_map = {}
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
 
-    if max_n_review < n_reviewer:
+    if n_max_reviewer < n_reviewer:
         random.shuffle(reviewers)
 
         reviewer_index = -1
-        for i in range(0, max_n_review):
+        for i in range(0, n_max_reviewer):
             for j in range(0, len(submissions)):
 
                 while True:
@@ -57,7 +65,7 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
     reviewers_task_map = {}
     n_reviewer = len(reviewers)
 
-    if max_n_review < n_reviewer:
+    if n_max_reviewer < n_reviewer:
         random.shuffle(reviewers)
 
 
@@ -67,7 +75,7 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
             reviewer_index = -1
             reviewer_team = []
 
-            while len(reviewer_team) < max_n_review and reviewer_index < n_reviewer - 1:
+            while len(reviewer_team) < n_max_reviewer and reviewer_index < n_reviewer - 1:
                 reviewer_index = (reviewer_index + 1)
 
                 reviewer_team = submission_reviewers_map.get(submissions[j]['submission_id'])
@@ -101,7 +109,7 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
         for j in range(0, len(submissions)):
             reviewer_index = -1
             reviewer_team = []
-            while len(reviewer_team) < max_n_review:
+            while len(reviewer_team) < n_max_reviewer:
                 reviewer_index = (reviewer_index + 1) % n_reviewer
 
                 #check the workload of this reviewer
@@ -139,14 +147,32 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
 
 def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
 
+    submission_reviewers_map = {}
+    reviewers_task_map = {}
+    n_reviewer = len(reviewers)
+
     #find the median of reputations
-    reputations = [d['reputation'] for d in reviewers]
+    reputations = [r['reputation'] for r in reviewers]
     data = numpy.array(reputations)
-    median = numpy.average(data)
-    sum = median * n_max_reviewer
+    median = numpy.median(data)
+    expected_sum = median * n_max_reviewer
 
     #find subsets of reviewers with the length of n_max_reviewer
-    reviewer_combinations = find_subsets(reviewers, n_max_reviewer, sum)
+    reviewer_subset_with_sum(reviewers, n_max_reviewer, expected_sum)
+    reviewer_combinations = list_subsets
+
+    reviewer_team_index = 0
+
+    for submission in submissions:
+        while True:
+            if not set([r['reviewer_id'] for r in reviewer_combinations[reviewer_team_index]]).issubset(submission['conflicts']):
+                submission_reviewers_map[submission['submission_id']] = reviewer_combinations[reviewer_team_index]
+                #TODO update each reviewer's task
+                reviewer_team_index = (reviewer_team_index + 1) % len(reviewer_combinations)
+                break
+
+
+    return flask.jsonify(submissions=submission_reviewers_map, tasks=reviewers_task_map)
 
 
 
