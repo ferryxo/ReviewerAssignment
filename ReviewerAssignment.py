@@ -2,12 +2,13 @@ from flask import Flask, request
 import random
 import flask
 import numpy
+from random import randint
 
 app = Flask(__name__)
 
 list_subsets = []
 
-def reviewer_subset_with_sum(sublist, needed_sublist_len, expected_sum):
+def reviewer_subset_with_sum(sublist, needed_sublist_len, expected_sum, n_submission):
     if needed_sublist_len == len(sublist):
         if not sublist in list_subsets:
             if abs(sum([r['reputation'] for r in sublist])-expected_sum)<0.5:
@@ -17,7 +18,79 @@ def reviewer_subset_with_sum(sublist, needed_sublist_len, expected_sum):
         for i in sublist:
             aux = sublist[:]
             aux.remove(i)
-            reviewer_subset_with_sum(aux, needed_sublist_len, expected_sum)
+            reviewer_subset_with_sum(aux, needed_sublist_len, expected_sum, n_submission)
+
+def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
+
+    submission_reviewers_map = {}
+    reviewers_task_map = {}
+    n_reviewer = len(reviewers)
+
+    #find the median of reputations
+    reputations = [r['reputation'] for r in reviewers]
+    data = numpy.array(reputations)
+    median = numpy.median(data)
+    expected_sum = median * n_max_reviewer
+
+    #sort reviewers based on their reputation
+    sorted_reviewers = sorted(reviewers, key=lambda k: k['reputation'])
+
+    #for each submission find random n reviewers whose sum of reputations approx eq to expected_sum
+    for submission in submissions:
+        #divide the reviewers into n_max_reviewer groups
+        n_each_reviewer_block = len(reviewers) / n_max_reviewer
+        reputation_sum = 0
+        reviewer_team = []
+        skipped = 0
+        for i in range(0, n_max_reviewer+1):
+            reviewer_index = 0
+            # take a random reviewer from each block
+            start_block = i * n_each_reviewer_block
+            # put the reminder in the last block
+            end_block = i * n_each_reviewer_block + n_each_reviewer_block - 1 if i <  n_max_reviewer-1 else len(reviewers) - 1
+
+            #check if all reviewers in this block are in conflict, then we have to skipped this block
+            if set([r['reviewer_id'] for r in sorted_reviewers[start_block:end_block+1]]) < set(submission['conflicts']):
+                skipped += 1
+                continue
+
+            #this iteration is not skipped, but we have to assign reviewers for this one as well as for the skipped iterations
+            for j in range(-1, skipped):
+                while True:
+                    reviewer_index = randint(start_block, end_block)
+                    reputation_sum += sorted_reviewers[reviewer_index]['reputation']
+                    if not sorted_reviewers[reviewer_index]['reviewer_id'] in submission['conflicts']:
+                        if i < n_max_reviewer:
+                            break
+                        elif i == n_max_reviewer and abs(reputation_sum-expected_sum) < (1/10 * expected_sum):
+                            break
+                    reputation_sum -= sorted_reviewers[reviewer_index]['reputation']
+
+                reviewer_team.append(sorted_reviewers[reviewer_index])
+
+                if not sorted_reviewers[reviewer_index]['reviewer_id'] in reviewers_task_map.keys():
+                    reviewers_task_map[sorted_reviewers[reviewer_index]['reviewer_id']] = []
+                reviewers_task_map[sorted_reviewers[reviewer_index]['reviewer_id']].append(submission)
+
+        submission_reviewers_map[submission['submission_id']] = reviewer_team
+
+
+    #find subsets of reviewers with the length of n_max_reviewer
+    #reviewer_subset_with_sum(reviewers, n_max_reviewer, expected_sum)
+    #reviewer_combinations = list_subsets
+
+    # reviewer_team_index = 0
+
+    # for submission in submissions:
+    #     while True:
+    #         if not set([r['reviewer_id'] for r in reviewer_combinations[reviewer_team_index]]).issubset(submission['conflicts']):
+    #             submission_reviewers_map[submission['submission_id']] = reviewer_combinations[reviewer_team_index]
+    #             #TODO update each reviewer's task
+    #             reviewer_team_index = (reviewer_team_index + 1) % len(reviewer_combinations)
+    #             break
+
+
+    return flask.jsonify(submissions=submission_reviewers_map, tasks=reviewers_task_map)
 
 def assign_reviews_random(submissions, reviewers, n_max_reviewer):
     submission_reviewers_map = {}
@@ -145,41 +218,6 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
 
     return flask.jsonify(reviews=submission_reviewers_map, tasks=reviewers_task_map)
 
-def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
-
-    submission_reviewers_map = {}
-    reviewers_task_map = {}
-    n_reviewer = len(reviewers)
-
-    #find the median of reputations
-    reputations = [r['reputation'] for r in reviewers]
-    data = numpy.array(reputations)
-    median = numpy.median(data)
-    expected_sum = median * n_max_reviewer
-
-    #find subsets of reviewers with the length of n_max_reviewer
-    reviewer_subset_with_sum(reviewers, n_max_reviewer, expected_sum)
-    reviewer_combinations = list_subsets
-
-    reviewer_team_index = 0
-
-    for submission in submissions:
-        while True:
-            if not set([r['reviewer_id'] for r in reviewer_combinations[reviewer_team_index]]).issubset(submission['conflicts']):
-                submission_reviewers_map[submission['submission_id']] = reviewer_combinations[reviewer_team_index]
-                #TODO update each reviewer's task
-                reviewer_team_index = (reviewer_team_index + 1) % len(reviewer_combinations)
-                break
-
-
-    return flask.jsonify(submissions=submission_reviewers_map, tasks=reviewers_task_map)
-
-
-
-
-
-
-
 
 @app.route('/', methods=['GET', 'POST'])
 def hello_world():
@@ -199,7 +237,9 @@ def hello_world():
                      {'reviewer_id':'R06', 'name':'Clark Kent', 'reputation':0.5, 'preferences':['S03']},
                      {'reviewer_id':'R07', 'name':'Bruce Wayne', 'reputation':0.7, 'preferences':['S03']},
                      {'reviewer_id':'R08', 'name':'Louise Lane', 'reputation':0.5, 'preferences':['S04']},
-                     {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':0.9, 'preferences':['S04']}]
+                     {'reviewer_id':'R09', 'name':'Lana Lang', 'reputation':0.9, 'preferences':['S04']},
+                     {'reviewer_id':'R10', 'name':'Gina Jane', 'reputation':0.5, 'preferences':['S04']},
+                     {'reviewer_id':'R11', 'name':'Joe Binden', 'reputation':0.9, 'preferences':['S04']}]
 
         n_max_reviewer = 4
     else:
