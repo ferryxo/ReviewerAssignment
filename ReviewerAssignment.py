@@ -27,7 +27,7 @@ def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
     n_reviewer = len(reviewers)
 
     #find the median of reputations
-    reputations = [r['reputation'] for r in reviewers]
+    reputations = [float(r['reputation']) for r in reviewers]
     data = numpy.array(reputations)
     median = numpy.median(data)
     expected_sum = median * n_max_reviewer
@@ -58,13 +58,13 @@ def assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer):
             for j in range(-1, skipped):
                 while True:
                     reviewer_index = randint(start_block, end_block)
-                    reputation_sum += sorted_reviewers[reviewer_index]['reputation']
+                    reputation_sum += float(sorted_reviewers[reviewer_index]['reputation'])
                     if not sorted_reviewers[reviewer_index]['reviewer_id'] in submission['conflicts']:
                         if i < n_max_reviewer:
                             break
                         elif i == n_max_reviewer and abs(reputation_sum-expected_sum) < (1/10 * expected_sum):
                             break
-                    reputation_sum -= sorted_reviewers[reviewer_index]['reputation']
+                    reputation_sum -= float(sorted_reviewers[reviewer_index]['reputation'])
 
                 reviewer_team.append(sorted_reviewers[reviewer_index])
 
