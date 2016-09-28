@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Reviewer Assignment</title>
+        <link rel="stylesheet" href="static/style.css">
+    </head>
+    <body>
+        <script>
+            function submitform(){
+                console.log("Sending Json");
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4) {
+                       document.getElementById('response_text').innerHTML = 'Review Assignment Results: <p>' + xhr.responseText
+                    }
+                }
+                xhr.open(input_form.method, window.location.href, true);
+                xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+                xhr.send(document.getElementById("json_config").value);
+            }
+
+            function copyToClipboard(elem) {
+                  // create hidden text element, if it doesn't already exist
+                var targetId = "_hiddenCopyText_";
+                var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
+                var origSelectionStart, origSelectionEnd;
+                if (isInput) {
+                    // can just use the original source element for the selection and copy
+                    target = elem;
+                    origSelectionStart = elem.selectionStart;
+                    origSelectionEnd = elem.selectionEnd;
+                } else {
+                    // must use a temporary form element for the selection and copy
+                    target = document.getElementById(targetId);
+                    if (!target) {
+                        var target = document.createElement("textarea");
+                        target.style.position = "absolute";
+                        target.style.left = "-9999px";
+                        target.style.top = "0";
+                        target.id = targetId;
+                        document.body.appendChild(target);
+                    }
+                    target.textContent = elem.textContent;
+                }
+                // select the content
+                var currentFocus = document.activeElement;
+                target.focus();
+                target.setSelectionRange(0, target.value.length);
+
+                // copy the selection
+                var succeed;
+                try {
+                      succeed = document.execCommand("copy");
+                } catch(e) {
+                    succeed = false;
+                }
+                // restore original focus
+                if (currentFocus && typeof currentFocus.focus === "function") {
+                    currentFocus.focus();
+                }
+
+                if (isInput) {
+                    // restore prior selection
+                    elem.setSelectionRange(origSelectionStart, origSelectionEnd);
+                } else {
+                    // clear temporary content
+                    target.textContent = "";
+                }
+                return succeed;
+            }
+
+        </script>
+
+        <form class="form-container" action="http://peerlogic.csc.ncsu.edu/reviewer_assignment/" method="POST" name="input_form">
+            <div class="form-title"><h2>Reviewer Assignment</h2></div>
+            <div class="form-title">Enter a JSON Configuration to assign reviews</div>
+            <div class="form-title">TODO: link to a documentation</div>
+            <p><textarea rows="50" cols="160"  name="json config" id="json_config" class="form-field"></textarea></p>
+            <p><button type="button"  class="submit-button" onclick="submitform()">Go get the review assignment!</button></p>
+            <p><pre id="response_text"></pre></p>
+        </form>
+        &nbsp;
+        <div class="form-container">
+            <div class="form-title"><h2>Example of JSON configuration</h2></div>
+             &nbsp;
+            <p><button type="button" class="submit-button" onclick="copyToClipboard(document.getElementById('json_example'))">Copy Example</button></p>
+            <pre id="json_example">
+            {
+               "n_max_reviewer":4,
+               "submissions":[
+                  {
+                     "submission_id":"S00",
+                     "conflicts":[
+                        "R01"
+                     ]
+                  },
+                  {
+                     "submission_id":"S01",
+                     "conflicts":[
+                        "R02"
+                     ]
+                  },
+                  {
+                     "submission_id":"S02",
+                     "conflicts":[
+                        "R04"
+                     ]
+                  },
+                  {
+                     "submission_id":"S03",
+                     "conflicts":[
+                        "R06"
+                     ]
+                  },
+                  {
+                     "submission_id":"S04",
+                     "conflicts":[
+                        "R08"
+                     ]
+                  }
+               ],
+               "reviewers":[
+                  {
+                     "reviewer_id":"R00",
+                     "name":"Donald Trump",
+                     "reputation":"0.5",
+                     "preferences":[
+                        "S00",
+                        "S01"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R01",
+                     "name":"Hilary Clinton",
+                     "reputation":"0.75",
+                     "preferences":[
+                        "S01",
+                        "S02"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R02",
+                     "name":"Bart Simpson",
+                     "reputation":"0.5",
+                     "preferences":[
+                        "S02",
+                        "S03"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R03",
+                     "name":"Mickey Mouse",
+                     "reputation":"0.4",
+                     "preferences":[
+                        "S01"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R04",
+                     "name":"Minie Mouse",
+                     "reputation":"0.8",
+                     "preferences":[
+                        "S02"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R05",
+                     "name":"Oliver Quenn",
+                     "reputation":"0.3",
+                     "preferences":[
+                        "S02"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R06",
+                     "name":"Clark Kent",
+                     "reputation":"0.5",
+                     "preferences":[
+                        "S03"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R07",
+                     "name":"Bruce Wayne",
+                     "reputation":"0.7",
+                     "preferences":[
+                        "S03"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R08",
+                     "name":"Louise Lane",
+                     "reputation":"0.5",
+                     "preferences":[
+                        "S04"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R09",
+                     "name":"Lana Lang",
+                     "reputation":"0.9",
+                     "preferences":[
+                        "S04"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R10",
+                     "name":"Gina Jane",
+                     "reputation":0.5,
+                     "preferences":[
+                        "S04"
+                     ]
+                  },
+                  {
+                     "reviewer_id":"R11",
+                     "name":"Joe Binden",
+                     "reputation":0.9,
+                     "preferences":[
+                        "S04"
+                     ]
+                  }
+               ]
+            }
+            </pre>
+            <p>
+                <button type="button" class="submit-button" onclick="copyToClipboard(document.getElementById('json_example'))">Copy Example</button>
+                &nbsp;
+                <button type="button" class="submit-button" onclick="window.scrollTo(0, 0);">Go up</button>
+            </p>
+        </div>
+    </body>
+</html>

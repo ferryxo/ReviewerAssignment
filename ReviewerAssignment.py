@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 import random
 import flask
 import numpy
@@ -108,7 +108,8 @@ def assign_reviews_random(submissions, reviewers, n_max_reviewer):
                     reviewer_index = (reviewer_index + 1) % n_reviewer
                     if reviewers[reviewer_index]['reviewer_id'] in submissions[j]['conflicts']:
                         print 'skip conflict'
-                    elif reviewers[reviewer_index] in submission_reviewers_map[submissions[j]['submission_id']]:
+                    elif submissions[j]['submission_id'] in submission_reviewers_map.keys() and \
+                                    reviewers[reviewer_index] in submission_reviewers_map[submissions[j]['submission_id']]:
                         print 'skip redundant'
                     #elif not submissions[j]['submission_id'] in submission_reviewers_map.keys():
                     #    break
@@ -219,8 +220,8 @@ def assign_reviews_preference(submissions, reviewers, n_max_reviewer):
     return flask.jsonify(reviews=submission_reviewers_map, tasks=reviewers_task_map)
 
 
-@app.route('/', methods=['GET', 'POST'])
-def hello_world():
+@app.route('/sample/<algorithm>', methods=['GET', 'POST'])
+def sample(algorithm):
     if request.method == 'GET':
         submissions = [{'submission_id':'S00', 'conflicts':['R01']},
                        {'submission_id':'S01', 'conflicts':['R02']},
@@ -248,13 +249,41 @@ def hello_world():
         reviewers = data['reviewers']
         n_max_reviewer = data['n_max_reviewer']
 
-
-    assignment = assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer)
+    if algorithm == 'random':
+        assignment = assign_reviews_random(submissions, reviewers, n_max_reviewer)
+    elif algorithm == 'preference':
+        assignment = assign_reviews_preference(submissions, reviewers, n_max_reviewer)
+    elif algorithm == 'reputation':
+        assignment = assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer)
+    else:
+        return flask.jsonify(error="supported algorithms are 'random', 'preference', 'reputation'.")
     #assign_reviews_preference(submissions, reviewers, n_max_reviewer)
     #assignment = assign_reviews_random(submissions, reviewers, 6)
 
     return assignment
 
+
+@app.route('/<algorithm>', methods=['GET', 'POST'])
+def hello_world(algorithm):
+    if request.method == 'GET':
+        return render_template("index.html")
+    else:
+        data = request.json
+        submissions = data['submissions']
+        reviewers = data['reviewers']
+        n_max_reviewer = data['n_max_reviewer']
+
+
+    if algorithm == 'random':
+        assignment = assign_reviews_random(submissions, reviewers, n_max_reviewer)
+    elif algorithm == 'preference':
+        assignment = assign_reviews_preference(submissions, reviewers, n_max_reviewer)
+    elif algorithm == 'reputation':
+        assignment = assign_reviews_dist_reputation(submissions, reviewers, n_max_reviewer)
+    else:
+        return flask.jsonify(error="supported algorithms are 'random', 'preference', 'reputation'.")
+
+    return assignment
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3007, threaded=True)
